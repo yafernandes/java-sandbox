@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  labels:
+    app.kubernetes.io/name: prometheus
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+      tags.datadoghq.com/version: "0.1a"
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: prometheus
+        admission.datadoghq.com/enabled: "true"
+        tags.datadoghq.com/env: sandbox
+        tags.datadoghq.com/service: prometheus
+        tags.datadoghq.com/version: "0.1a"
+      annotations:
+        admission.datadoghq.com/java-lib.version: latest
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      initContainers:
+        - name: init-copy-war
+          image: alpine
+          imagePullPolicy: Always
+          command: ["sh", "-c", "--"]
+          args:
+            - |-
+              wget -O /var/app/sandbox.jar https://github.com/yafernandes/java-sandbox/releases/download/v0.0.1rc/sandbox.jar
+          volumeMounts:
+            - mountPath: /var/app
+              name: war
+      containers:
+        - name: prometheus
+          image: openjdk:8
+          command:
+            - java
+          args:
+            - -jar
+            - /var/app/sandbox.jar
+            - prometheus
+          resources:
+            limits: {}
+          volumeMounts:
+            - mountPath: /var/app
+              name: war
+      volumes:
+        - name: war
+          emptyDir: {}

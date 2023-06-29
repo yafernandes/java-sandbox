@@ -1,0 +1,41 @@
+plugins {
+    id 'application'
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation group: 'io.micrometer', name: 'micrometer-registry-prometheus', version: '1.11.1'
+    implementation group: 'io.prometheus', name: 'simpleclient_httpserver', version: '0.16.0'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+}
+
+application {
+    mainClass = 'com.datadog.ese.sandbox.App'
+}
+
+tasks.register('uberJar', Jar) {
+    archiveClassifier = 'uber'
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveFileName = "sandbox.jar"
+
+    from sourceSets.main.output
+
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath.findAll { it.name.endsWith('jar') }.collect { zipTree(it) }
+    }
+
+    manifest { 
+        attributes "Main-Class": "com.datadog.ese.sandbox.App"
+    }  
+}
